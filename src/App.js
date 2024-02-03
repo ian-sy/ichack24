@@ -11,6 +11,41 @@ function App() {
     setUserInputs([...userInputs, '']);
   };
 
+  // const data = fetch("https://nqa4uferurysboicmqiasmu7rm0srnqb.lambda-url.eu-west-1.on.aws/", {
+  //   method: "POST",
+  //   body: JSON.stringify({
+  //     userId: 1,
+  //     title: "Fix my bugs",
+  //     completed: false
+  //   }),
+  //   headers: {
+  //     "Content-type": "application/json; charset=UTF-8"
+  //   }
+  // }).then(response => response.text());
+
+  async function foo() {
+    let obj;
+  
+    const res = await fetch("https://ga53d6ugxl.execute-api.eu-west-1.amazonaws.com/prod/simple-func", {
+      method: "POST",
+      body: JSON.stringify({
+        userId: 1,
+        title: "Fix my bugs",
+        completed: false
+      }),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      }
+    })
+    // console.log(res)
+    obj = await res.json()
+  
+    console.log(obj)
+    return obj
+  }
+  
+  const data = foo();
+
   return (
     <div className="App">
       <header className="App-header">
@@ -27,6 +62,9 @@ function App() {
         >
           Learn React
         </a>
+        <p>
+          {data.statusCode}
+        </p>
       </header>
     </div>
   );
