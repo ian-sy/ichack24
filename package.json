@@ -13,8 +13,10 @@
     "@types/react-dom": "^18.2.18",
     "antd": "^5.13.3",
     "react": "^18.2.0",
+    "react-animations": "^1.0.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
+    "react-sequence-animator": "^2.3.0",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
@@ -41,5 +43,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "sass": "^1.70.0"
   }
 }
