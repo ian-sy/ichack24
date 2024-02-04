@@ -15,9 +15,11 @@ async function test() {
     //             ['X', 'S', 'X', 'X', 'O', 'X'],
     //             ['X', 'X', 'X', 'X', 'X', 'X']]
     console.log('TFALSE'.includes('FALSE'))
-    let instr = "walk up from the starting point. If you hit a yellow box, turn right. If you hit a red box, turn left. If you hit the end point. Stop."
+    let instr = "walk up from the starting point. If you are on a yellow box, turn right. If you are on a red box, turn left. If you are at the end point. Stop."
+    // let badInstr = "Walk up 4 squares and turn right"
     // let instr = "walk up from the starting point. If you hit and wall, turn right and continue. Stop when you reach the endpoint."
-    let result = await evaluateUserInput(map, instr)
+    let modelResponse = "The solution should be elegant, and should impose a condition to turn right upon reaching a yellow box and turn left upon reaching a red box."
+    let result = await evaluateUserInput(map, instr, modelResponse)
     console.log(result)
 }
 test()
