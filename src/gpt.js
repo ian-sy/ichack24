@@ -2,6 +2,11 @@ const OpenAI = require('openai')
 
 const openai = new OpenAI({apiKey: "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", dangerouslyAllowBrowser: true});
 
+const retryMessage = 
+                `Hey there! Thank you so much for giving it a shot! 
+                We truly appreciate your effort. Could you please try again and explain your thoughts with more detail? 
+                We want to make sure you have a crystal-clear understanding of the concept.`
+
 //     const fewShotPrompt = `
 //     Map: 
 //     [ ['X', 'X', 'X', 'X', 'X', 'X'],
@@ -25,26 +30,27 @@ const openai = new OpenAI({apiKey: "sk-6XJESnHH7amLezM0N3auT3BlbkFJrKCniPOeUik1P
 
 async function getGPTResponse(messages) {
     const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-3.5-turbo-0125",
         messages: messages,
+        temperature: 0.5
         // tools: tools? tools : [],
         // tool_choice: "auto"
       });
     return completion
 }
 
-async function getInitialGPTResult(query_msg) {
+async function getInitialGPTResult(messages, query_msg) {
     const gameIntroPrompt = "I will send you a map, a 2D array of characters. 'O' represents an empty space, 'X' represents a wall, 'S' represents the starting point," + 
     "and 'E' represents the ending point, 'Y' represents a yellow box and 'R' represents a red box. " +
     "Then, I will also send you an instruction. Give me a list of coordinates that you would follow based on the " +
     "instruction to traverse the map, with the goal of reaching the endpoint from the starting point. " +
+    "The x and y coordinates of the map follows the following reasoning: Moving up decreases x, moving down increases x, moving right increases y, moving left decreases y." +
     "Follow the instructions strictly. Show every step taken, including any backtracks, and carefully explain your thought process. " +
     "If the instruction is clear and executable, and the path ends at the endpoint, return the list of coordinates traversed. " +
     "Otherwise, if there is something unclear about the instruction, or if you stepped on a wall coordinate or go out of boundaries " +
     "or if the path does not end at the endpoint, say FALSE and give a short description of what went wrong."
-    var messages = [{"role": "system", "content": "you are a helpful assistant."},
-                    {"role": "user", "content": gameIntroPrompt},
-                    {"role": "user", "content": query_msg + "Let's think step by step."}]
+    messages.push({"role": "user", "content": gameIntroPrompt})
+    messages.push({"role": "user", "content": query_msg + "Let's think step by step."})
     var completion = await getGPTResponse(messages)
     console.log(completion.choices[0]['message']['content']);
     messages.push({"role": "assistant", "content": completion.choices[0]['message']['content']})
@@ -62,23 +68,47 @@ async function getResponseJson(messages) {
             return response
         } catch (error) {
             console.log("there is an error in the response" + error.message)
-            const retryMessage = 
-                `Hey there! Thank you so much for giving it a shot! 
-                We truly appreciate your effort. Could you please try again and explain your thoughts with more detail? 
-                We want to make sure you have a crystal-clear understanding of the concept.`
-            return {"status": false, "result": retryMessage}
+            return {"status": false, "reason":"gpt", "result": retryMessage}
         }
     } finally {
         console.log("finally")
     }
 }
 
-async function evaluateUserInput(map, instruction) {
+async function naturalLanguageFeedback(messages, modelResponse, instruction) {
+    let naturalLanguageFeedbackPrompt = `Based on the following Requirement, provide feedback on whether the solution satisfies the Requirement.
+    Requirement: ${modelResponse}
+    Solution: ${instruction}
+    Decide whether the solution whether the solution satisfies the Requirement. 
+    If it does, say "YES". Otherwise, state your reasoning.`
+    var messages = [
+        {"role": "system", "content": "you are a helpful assistant."},
+        {"role": "user", "content": naturalLanguageFeedbackPrompt},
+    ]
+    let completion = await getGPTResponse(messages)
+    
+    // push the content of the last message to the new response
+    let response = completion.choices[0]['message']['content']
+    console.log(response)
+    messages.push({"role": "assistant", "content": response})
+    return [messages, response, response.includes('yes') || response.includes('YES') || response.includes('Yes')]
+}
+
+async function evaluateUserInput(map, instruction, model) {
     // let tools = await createTools()
+    let modelResponseFeedback = await naturalLanguageFeedback([], model, instruction)
+    let modelResponseMessages = modelResponseFeedback[0]
+    let modelResponse = modelResponseFeedback[1]
+    let responseSimilarity = modelResponseFeedback[2]
+    if (!responseSimilarity) {
+        return {"status": false, "reason": "teacher", "result": modelResponse}
+    }
     let query_msg = await parseMapAndFormQuerySentence(map, instruction)
     console.log(query_msg)
-    let init_messages = await getInitialGPTResult(query_msg)
-    let messages = await criticiseLastMessage(init_messages)
+    let init_messages = await getInitialGPTResult(modelResponseMessages, query_msg)
+    let messages = await generateAdditionalResponse(init_messages)
+    messages = await generateAdditionalResponse(messages)
+    messages = await judgeResponses(messages)
     let responseJson = await getResponseJson(messages)
     if (responseJson.status === false) {
         return responseJson
@@ -88,12 +118,36 @@ async function evaluateUserInput(map, instruction) {
     let size = map.length
     let validCoordinates = checkCoordinatesValidity(coordinates, size)
     if (!validCoordinates) {
-        return {"status": false, "result": "FALSE the coordinates are invalid."}
+        return {"status": false, "reason": "coord-invalid", "result": "FALSE the coordinates are invalid."}
     }
     // convert coordinates to directions
-    let directions = coordinatesToDirections(coordinates)
+    let directions = coordinatesToDirections(coordinates, size)
     console.log(directions)
-    return {"status": true, "result": directions}
+    if (!directions.status) {
+        return {"status": true, "reason": "coord-valid", "result": "Your response is not entirely correct. Please try again. Feel free to reach out to your teacher for help!"}
+    }
+    return {"status": true, "result": directions.directions}
+}
+
+async function generateAdditionalResponse(messages) {
+    let criticismPrompt = "Review your previous response. Independently answer the question again. Let's think step by step."
+    messages.push({"role": "user", "content": criticismPrompt})
+    let completion = await getGPTResponse(messages)
+    console.log(completion.choices[0]['message']['content'])
+    // push the content of the last message to the new response
+    messages.push({"role": "assistant", "content": completion.choices[0]['message']['content']})
+    return messages
+}
+
+async function judgeResponses(messages) {
+    // summarize the previous responses
+    let summarizePrompt = "You are now the judge. Based on the reasoning in the previous responses, independently summarize the majority response."
+    messages.push({"role": "user", "content": summarizePrompt})
+    let completion = await getGPTResponse(messages)
+    console.log(completion.choices[0]['message']['content'])
+    // push the content of the last message to the new response
+    messages.push({"role": "assistant", "content": completion.choices[0]['message']['content']})
+    return messages
 }
 
 async function criticiseLastMessage(messages) {
@@ -156,8 +210,13 @@ async function summariseAndParseOutput(messages) {
         messages.push({"role": "user", "content": summarize_prompt})
         let completion = await getGPTResponse(messages)
         let output = completion.choices[0]['message']['content']
-        console.log(output)
-        return {"status": false, "result": output}
+        // get the last coordinates
+        // const output_prompt = `Based on your last response, return me a list of coordinates only. Do not output anything else.`
+        // messages.push({"role": "user", "content": summarize_prompt})
+        // let completion2 = await getGPTResponse(messages)
+        // let coords = completion2.choices[0]['message']['content']
+        // console.log(output2)
+        return {"status": false, "reason": "gpt", "result": retryMessage}
     } else {
         const getOutputPrompt = `Based on your last response, return me a list of coordinates only. Do not output anything else.`
         messages.push({"role": "user", "content": getOutputPrompt})
@@ -196,10 +255,16 @@ function processDirection(orientation, directions,nextDirection) {
     }
 }
 
-function coordinatesToDirections(coordinates) {
+function coordinatesToDirections(coordinates, size) {
     const givenDirections = ['L', 'R', 'F', 'B']
     let directions = []
     let orientation = 0
+    let stat = true
+    const ending_x = 1
+    const ending_y = size - 2
+    if (coordinates[coordinates.length - 1][0] !== ending_x || coordinates[coordinates.length - 1][1] !== ending_y) { 
+        stat = false
+    }
     for (let i = 0; i < coordinates.length - 1; i++) {
         let current = coordinates[i]
         let next = coordinates[i + 1]
@@ -264,7 +329,7 @@ function coordinatesToDirections(coordinates) {
         }
         
     }
-    return directions
+    return {"status": stat, "directions": directions}
 }
 
 function checkCoordinatesValidity(coordinates, size) {
