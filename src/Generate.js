@@ -1,10 +1,16 @@
-import React, { useEffect } from 'react';
-import { Col, InputNumber, Row, Slider, Space } from 'antd';
+import React, { useEffect, useRef } from 'react';
+import { Button, Col, Input, InputNumber, Row, Slider, Space } from 'antd';
 import Map from './Map';
+const { TextArea } = Input;
 
-function Generate() {
+
+function Generate(props) {
+
+    const childRef = useRef();
+    const modelInputRef = useRef("");
 
     const [gridDimensions, setGridDimensions] = React.useState(5);
+    const [model, setModel] = React.useState(null);
 
     const onChange = (newValue) => {
         setGridDimensions(newValue);
@@ -18,6 +24,12 @@ function Generate() {
         return grid;
     }
 
+    const handleChange = e => {
+        e.preventDefault();
+        console.log("value", e.target.value);
+        setModel(s => e.target.value);
+    };
+
 return (
     <div style={{
         display: 'flex',
@@ -29,7 +41,7 @@ return (
         boxSizing: 'border-box',
     }}>
         <div>
-        <Map mapInfo={makeGrid(gridDimensions)} editor={true}/>
+        <Map mapInfo={makeGrid(gridDimensions)} editor={true} addNewLevel={props.addNewLevel} ref={childRef}/>
         </div>
         <div style={{width: "35%"}}>
         <Row>
@@ -46,6 +58,33 @@ return (
         </Col>
         </Row>
         </div>
+        <TextArea
+            placeholder='Provide some guidance for the AI marker. Be as specific as possible.'
+            // onChange={handleChange}
+            autoSize={{ minRows: 3, maxRows: 6 }}
+            ref={modelInputRef}
+            size="40"
+            style={{
+                margin: '1%',
+                width: '43%',
+                // paddingBottom: '5%',
+            }}
+        />
+        <Button style={{
+            width: "23%", borderColor: "#d3d3d3", borderRadius: "20px",backgroundColor:"black",color:"white" 
+        }} onClick={() => {
+            const fieldValue = modelInputRef.current.resizableTextArea.textArea.value;
+            console.log("FIELD", fieldValue)
+            if (fieldValue && fieldValue.length > 0) {
+                childRef.current.saveMapToJson(fieldValue);
+            } else {
+                console.log("Saving default")
+                childRef.current.saveMapToJson(
+                    "The solution can be anything."
+                )
+            }
+
+            }}>Submit</Button>
     </div>
     // <div className="App" style={{
     //     padding: '5%',

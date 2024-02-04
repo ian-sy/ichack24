@@ -1,6 +1,6 @@
 const OpenAI = require('openai')
 
-const openai = new OpenAI({apiKey: "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", dangerouslyAllowBrowser: true});
+const openai = new OpenAI({apiKey: "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", dangerouslyAllowBrowser: true});
 
 const retryMessage = 
                 `Hey there! Thank you so much for giving it a shot! 
@@ -30,7 +30,7 @@ const retryMessage =
 
 async function getGPTResponse(messages) {
     const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo-0125",
+        model: "gpt-4",
         messages: messages,
         temperature: 0.5
         // tools: tools? tools : [],
@@ -118,15 +118,15 @@ async function evaluateUserInput(map, instruction, model) {
     let size = map.length
     let validCoordinates = checkCoordinatesValidity(coordinates, size)
     if (!validCoordinates) {
-        return {"status": false, "reason": "coord-invalid", "result": "FALSE the coordinates are invalid."}
+        return {"status": false, "reason": "coord-invalid", "result": retryMessage}
     }
     // convert coordinates to directions
     let directions = coordinatesToDirections(coordinates, size)
     console.log(directions)
     if (!directions.status) {
-        return {"status": true, "reason": "coord-valid", "result": "Your response is not entirely correct. Please try again. Feel free to reach out to your teacher for help!"}
+        return {"status": true, "reason": "coord-valid", "result": directions.directions}
     }
-    return {"status": true, "result": directions.directions}
+    return {"status": true, "reason": null, "result": directions.directions}
 }
 
 async function generateAdditionalResponse(messages) {
@@ -227,7 +227,7 @@ async function summariseAndParseOutput(messages) {
             output = output.replace(/\(/g, '[').replace(/\)/g, ']');
             let outputArray = JSON.parse(output);
             console.log(outputArray);
-            return {"status": true, "result": outputArray}
+            return {"status": true, "reason": null, "result": outputArray}
         } catch (error) {
             throw new Error('Failed to parse output to JSON');
         }

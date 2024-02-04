@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { forwardRef, useRef, useImperativeHandle, useState, useEffect } from 'react';
 import './Map.css';
 import { useSpring, animated } from '@react-spring/web'
 
-const Map = (props) => {
+const Map = forwardRef((props, ref) => {
     const cellWidth = 65;
     const [state, setState] = useState(props)
 
@@ -10,11 +10,33 @@ const Map = (props) => {
         setState(props)
     }, [props])
 
+    useImperativeHandle(ref, () => ({
+
+    saveMapToJson(model) {
+        console.log("SAVE")        
+        // Map the numbers to block categories (letters)
+        let mapInfo = state.mapInfo.map((x) => {
+            return colorIndexMap[x]
+        })
+        
+        const json = {
+            "map": mapInfo,
+            "model": model
+        }
+
+        props.addNewLevel(s => {
+            console.log("WILL NOW BE", [...s, json])
+            return [...s, json];
+        });
+    }
+
+  }));
+
     // let currGrid = props.mapInfo
     const mapDim = Math.sqrt(props.mapInfo.length)
 
 
-    // Convert a list of movement instructions into a list of coordinates
+    // Convert a list of grid coordinates into a list of coordinates
     const convertToCoordinates = (instructions) => {
         let current_orientation = 0;
 
@@ -61,26 +83,15 @@ const Map = (props) => {
     const springs = useSpring({
         from: { bottom: 0, left: 0, rotate: "0deg" },
         to: async (next, cancel) => {
-          for (const coordinate of convertToCoordinates(['F', 'R', 'F', 'R', 'L', 'F', 'L'])) {
-            console.log(coordinate);
-            await next({ rotate: (coordinate.facing * 90) + "deg" });
-
-            await next({ left: coordinate.x, });
-            await next({ bottom: coordinate.y, });
-            // await next({ rotate: "180deg", background: "#ff6d6d" });
-            // await next({ left: coordinate[0], background: "#ff6d6d" });
-            // await next({ rotate: "270deg", background: "#ff6d6d" });
-            // await next({ bottom: coordinate[1], background: "#ff6d6d" });
-            // await next({ rotate: "360deg", background: "#ff6d6d" });
-        }
-        //   await next({ left: 80, background: "#fff59a" });
-        //   await next({ rotate: "90deg", background: "#ff6d6d" });
-        //   await next({ bottom: 40, background: "#88DFAB" });
-        //   await next({ rotate: "180deg", background: "#ff6d6d" });
-        //   await next({ left: 200, background: "#569AFF" });
-        //   await next({ rotate: "270deg", background: "#ff6d6d" });
-        //   await next({ bottom: -40, background: "#ff6d6d" });
-        //   await next({ rotate: "360deg", background: "#ff6d6d" });
+                if (props.movements) {
+                    for (const coordinate of convertToCoordinates(props.movements)) {
+                      console.log(coordinate);
+                      await next({ rotate: (coordinate.facing * 90) + "deg" });
+          
+                      await next({ left: coordinate.x, });
+                      await next({ bottom: coordinate.y, });
+                  }
+            }
         },
         loop: false,
       });
@@ -107,11 +118,18 @@ const Map = (props) => {
     
     function onClick(index) {
         let newGrid = props.mapInfo
-        newGrid[index] = (newGrid[index] + 1) % backgroundColor.length
+        newGrid[index] = (newGrid[index] + 1) % Object.keys(backgroundColor).length
         setState({mapInfo: newGrid})
     }
-    
-    console.log("HI", state.mapInfo.length, state.mapInfo)
+
+    const colorIndexMap = {
+        0: "O",
+        1: "X",
+        2: "S",
+        3: "E",
+        4: "Y",
+        5: "R",
+    }
 
     const backgroundColor = {
         "S": "green",
@@ -140,7 +158,10 @@ const Map = (props) => {
                                                                 className="cell"
                                                                 onClick={props.editor ? (() => onClick(i * mapDim + j)) : (() => {})}
                                                                 style={{
-                                                                    backgroundColor: backgroundColor[state.mapInfo[i * mapDim + j]],
+                                                                    backgroundColor: 
+                                                                        props.editor ?
+                                                                        backgroundColor[colorIndexMap[state.mapInfo[i * mapDim + j]]]
+                                                                        : backgroundColor[state.mapInfo[i * mapDim + j]],
                                                                     width: cellWidth + "px",
                                                                     height: cellWidth + "px",
                                                                     border: "0.5px solid #d3d3d3",
@@ -162,8 +183,8 @@ const Map = (props) => {
                 )
                             }
                             )()}
-            <animated.div className="player" style={boxStyle}></animated.div>
+            {props.editor ? null : <animated.div className="player" style={boxStyle}></animated.div>}
         </div>
     );
-};
+});
 export default Map;

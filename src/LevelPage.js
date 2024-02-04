@@ -5,7 +5,7 @@ import './Home.css'
 import { LeftOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
-function LevelPage() {
+function LevelPage(props) {
     
     const navigate = useNavigate();
 
@@ -22,15 +22,13 @@ function LevelPage() {
             <Button onClick = {handleClick_back} type="primary" shape="circle" icon={<LeftOutlined />}></Button>
             </div>
             <Flex gap="small" align="flex-start" vertical>
-            <Button onClick={() => navigate("/level/1")} style={{
-            width: "100%", borderColor: "#d3d3d3", borderRadius: "20px", 
-        }}>Level 1</Button>
-            <Button style={{
-            width: "100%", borderColor: "#d3d3d3", borderRadius: "20px", 
-        }}>Level 2</Button>
-            <Button style={{
-            width: "100%", borderColor: "#d3d3d3", borderRadius: "20px", 
-        }}>Level 3</Button>
+            {
+                Array.from({length: props.levelCount}, (v, i) => i + 1).map((level) => {
+                    return <Button onClick={() => navigate(`/level/${level}`)} style={{
+                        width: "100%", borderColor: "#d3d3d3", borderRadius: "20px", 
+                    }}>Level {level}</Button>
+                })
+            }
             </Flex>
 
         </div>

@@ -1,13 +1,13 @@
 import React from 'react';
-import { Button, Input, Alert, Spin } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Button, Input, Alert, Spin, Tooltip } from 'antd';
+import { PlusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import './Level.css';
 import Map from './Map';
 import { evaluateUserInput } from './gpt.js';
 
 const { TextArea } = Input;
 
-function Level({mapInfo}) {
+function Level({mapInfo, model}) {
     const [userInput, setUserInput] = React.useState("");
     const [lastResult, setLastResult] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
@@ -51,34 +51,49 @@ function Level({mapInfo}) {
     const submitUserInputs = () => {
         setLoading(true);
         console.log("submitting user input", userInput)
-    //     fetch('http://localhost:5000/api/submit', {
-    //     method: 'POST',
-    //     headers: {
-    //         'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify({value: userInput}),
-    // })
-        evaluateUserInput(convertTo2DAndPad(mapInfo), userInput)
+        evaluateUserInput(convertTo2DAndPad(mapInfo), userInput, model)
         .then(response => {
+            /* Reasons:
+                false, "gpt": "No output to process - try again" (nice retry)
+                false, "teacher": result -> Teacher vs student string
+                false, "coord-invalid": result -> nice retry
+                true, "coord-valid": result -> msg
+                "Your response is not entirely correct. Please try again. Feel free to reach out to your teacher for help!"
+
+            */
+
+            if (response.status) {
+                // Parse directions - top left is (1, 1)
+                const coords = response.result; 
+                console.log("coords", coords)
+                if (response.reason == null) {
+                    // Correct
+                    setLastResult({type: "success", message: null, coords: coords})
+                } else {
+                    // Wrong
+                    setLastResult({type: "error", message: "Your instructions didn't reach the goal - please try again!", coords: coords})
+                }
+            } else if (response.reason === "gpt" || response.reason === "coord-invalid") {
+                // Nice retry
+                setLastResult({type: "error", message: response.result, coords: null})
+            } else if (response.reason === "teacher") {
+                // Teacher vs student string
+                setLastResult({type: "error", message: response.result, coords: null})
+            } else {
+                // Not meant to be here
+                console.log("?????")
+                setLastResult({type: "error", message: "Unexpected error - please try again.", coords: null})
+            }
             setLoading(false)
-            setLastResult(response)
         })
         .catch(error => {
             console.error('Error:', error);
         });
     }
 
-    function makeGrid(dim) {
-        let grid = []
-        for (let i = 0; i < dim * dim; i++) {
-            grid.push(0)
-        }
-        return grid;
-    }
-
-
     return (
         <div className="Level" style={{
+            position: "relative",
             padding: '5%',
             display: 'flex',
             flexDirection: 'row',
@@ -112,12 +127,12 @@ function Level({mapInfo}) {
             {!lastResult ? 
                 <Alert
                     style={{textAlign: "left", margin: "5%", width: "80%"}}
-                    message="The AI marker is not always reliable."
-                    description=" Please speak with your teacher if you believe it has made a mistake."
+                    message="The AI marker does not handle complex instructions well."
+                    description="Make sure your instructions are broken down into small, specific steps. Speak to your teacher if you believe it has made a mistake."
                     type="info"
                     showIcon
                 /> :
-            (lastResult.status ?
+            (lastResult.type == "success" ?
                 <Alert
                     style={{textAlign: "left", margin: "5%", width: "80%"}}
                     message="Correct!"
@@ -127,7 +142,7 @@ function Level({mapInfo}) {
                 <Alert
                     style={{textAlign: "left", margin: "5%", width: "80%"}}
                     message="Sorry, something's not quite right."
-                    description={lastResult.result + "\nPlease speak with your teacher if you believe the AI marker has made a mistake."}
+                    description={lastResult.message + "\nPlease speak with your teacher if you believe the AI marker has made a mistake."}
                     type="error"
                     showIcon
                 />
@@ -145,7 +160,20 @@ function Level({mapInfo}) {
                 height: 'fit-content',
             }}>
             <div style={{margin: '5%'}}>
-            <Map mapInfo={mapInfo} editor={false} coordsToPlot={null} />
+            <Map mapInfo={mapInfo} editor={false} movements={lastResult ? lastResult.coords : null} />
+            </div>
+            <div style={{
+                position: "absolute",
+                bottom: "0",
+                right: "0",
+                marginLeft: "0%",
+                marginRight: "5%",
+                marginTop: "0%",
+                marginBottom: "-7%",
+            }}>
+            <Tooltip title="Provide steps for the triangle to reach the goal. 'Move forward' will cause the triangle to move in the direction it is pointing towards." trigger="click" defaultOpen>
+                <Button shape="circle" icon={<QuestionCircleOutlined />} />
+            </Tooltip>
             </div>
             </div>
             </div>
