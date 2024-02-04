@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Map.css';
-import { useSpring, animated } from '@react-spring/web';
+import { useSpring, animated } from '@react-spring/web'
 
+const Map = (props) => {
+    const cellWidth = 45;
+    const [state, setState] = useState(props)
 
-const Map = () => {
-    const cellWidth = 75;
-    const rows = 5;
-    const cols = 5;
-    const [gridData] = useState([
-        ['a', 'b', 'c', 'd', 'e'],
-        ['f', 'g', 'h', 'i', 'j'],
-        ['k', 'l', 'm', 'n', 'o'],
-        ['p', 'q', 'r', 's', 't'],
-        ['u', 'v', 'w', 'x', 'y']
-    ]);
+    useEffect(() => {
+        setState(props)
+    }, [props])
+
+    // let currGrid = props.mapInfo
+    const mapDim = Math.sqrt(props.mapInfo.length)
 
 
     // Convert a list of movement instructions into a list of coordinates
@@ -98,36 +96,62 @@ const Map = () => {
         opacity: '1',
         zIndex: '1',
         boxSizing: 'border-box',
-        borderRadius: "20px",
+        borderRadius: "10px",
         ...springs,
     };
+    
+    function onClick(index) {
+        let newGrid = props.mapInfo
+        newGrid[index] = (newGrid[index] + 1) % backgroundColor.length
+        setState({mapInfo: newGrid})
+    }
+    
+    console.log("HI", state.mapInfo.length, state.mapInfo)
+
+    const backgroundColor = ["white", "black", "red", "blue", "green"]
 
     return (
-        <div className="grid" style={{position: "relative"}}>
-            {gridData.map((row, rowIndex) => (
-                <div key={rowIndex} className="row" style={{
-                    display: "flex",
-                    flexDirection: "row",
-                }}>
-                    {row.map((component, colIndex) => (
-                        <div
-                            key={colIndex}
-                            className="cell"
-                            style={{
-                                width: cellWidth + "px",
-                                height: cellWidth + "px",
-                                border: "0.5px solid #d3d3d3",
-                                boxSizing: "border-box",
-                            }}
-                        >
-                            {component}
+        <div className="grid" style={{border: "solid 2px red", position: "relative"}}>
+            {(() => {
+                const finalGeneration = []
+                for (let i = 0; i < mapDim; i++) {   
+                    finalGeneration.push(
+                                            <div key={i} className="row" style={{
+                                            display: "flex",
+                                            flexDirection: "row",
+                                            }}> 
+                                                    {(() => {
+                                                        const gridGeneration = []
+                                                        for (let j = 0; j < mapDim; j++) {
+                                                            gridGeneration.push(<div
+                                                                key={j}
+                                                                className="cell"
+                                                                onClick={props.editor ? (() => onClick(i * mapDim + j)) : (() => {})}
+                                                                style={{
+                                                                    backgroundColor: backgroundColor[state.mapInfo[i * mapDim + j]],
+                                                                    width: cellWidth + "px",
+                                                                    height: cellWidth + "px",
+                                                                    border: "0.5px solid #d3d3d3",
+                                                                    boxSizing: "border-box",
+                                                                }}
+                                                            >
+                                                                
+                                                            </div> )
+                                                        }
+                                                        return (gridGeneration)})()}
+                                            </div>
+                                            
+                    )
+                }
+                return (
+                    <div>
+                        {finalGeneration}
                         </div>
-                    ))}
-                </div>
-            ))}
+                )
+                            }
+                            )()}
             <animated.div class="player" style={boxStyle}></animated.div>
         </div>
     );
 };
-
 export default Map;
