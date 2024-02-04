@@ -10,17 +10,16 @@ function App() {
     <div style={{
         width: "100%",
         height: "100%",
-        // display: "flex",
     }}>
         <Routes>
             <Route path = "/" element={<Home />} />
             <Route path = "/levels" element={<LevelPage />} />
             <Route path = "/level/1" element={<Level mapInfo={
-                [0, 0, 0, 1, 0,
-                 0, 1, 0, 1, 0,
-                 0, 1, 0, 1, 0,
-                 0, 1, 0, 0, 0, 
-                 0, 1, 1, 1, 1]
+                ["O", "O", "O", "O", "E",
+                 "O", "X", "X", "X", "O",
+                 "O", "X", "O", "X", "O",
+                 "O", "X", "O", "O", "O", 
+                 "S", "X", "X", "X", "X"]
             }/>} />
             <Route path = "/teacher" element={<Generate />} />
         </Routes>

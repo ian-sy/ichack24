@@ -1,41 +1,67 @@
 import React from 'react';
-import { Button, Input } from 'antd';
+import { Button, Input, Alert, Spin } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import './Level.css';
 import Map from './Map';
+import { evaluateUserInput } from './gpt.js';
+
+const { TextArea } = Input;
 
 function Level({mapInfo}) {
-    const [userInputs, setUserInputs] = React.useState([{value: ''}]);
-    
-    // Handler to add a new user input field
-    const addNewUserInput = () => {
-        setUserInputs([...userInputs, {value: ''}]);
-    };
+    const [userInput, setUserInput] = React.useState("");
+    const [lastResult, setLastResult] = React.useState(null);
+    const [loading, setLoading] = React.useState(false);
     
     const handleChange = e => {
         e.preventDefault();
-        
-        const index = e.target.id;
-        setUserInputs(s => {
-            const newArr = s.slice();
-            newArr[index].value = e.target.value;
-            console.log(newArr);
-            return newArr;
-        });
+        console.log("value", e.target.value);
+        setUserInput(s => e.target.value);
     };
+
+    // Convert a list of movement instructions into a list of coordinates
+    // Also pad the map to be surrounded by Xs
+    const convertTo2DAndPad = (mapInfo) => {
+        let map = []
+        let row = []
+
+        // Convert to 2D
+        for (let i = 0; i < mapInfo.length; i++) {
+            if (i % Math.sqrt(mapInfo.length) === 0 && i !== 0) {
+                map.push(row);
+                row = [];
+            }
+            row.push(mapInfo[i]);
+        }
+        map.push(row);
+
+        // Pad the map
+        let paddedMap = []
+        for (let i = 0; i < map.length + 2; i++) {
+            if (i === 0 || i === map.length + 1) {
+                paddedMap.push(Array(map[0].length + 2).fill('X'))
+            } else {
+                paddedMap.push(['X', ...map[i - 1], 'X'])
+            }
+        }
+        console.log(paddedMap)
+        return paddedMap;
+    }
     
     // Submit the user inputs by sending them as a POST request to the server
     const submitUserInputs = () => {
-        fetch('http://localhost:5000/api/submit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userInputs),
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Success:', data);
+        setLoading(true);
+        console.log("submitting user input", userInput)
+    //     fetch('http://localhost:5000/api/submit', {
+    //     method: 'POST',
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({value: userInput}),
+    // })
+        evaluateUserInput(convertTo2DAndPad(mapInfo), userInput)
+        .then(response => {
+            setLoading(false)
+            setLastResult(response)
         })
         .catch(error => {
             console.error('Error:', error);
@@ -62,30 +88,53 @@ function Level({mapInfo}) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            // height: '80%',
             width: '50%',
-            border: '1px solid black',
-            // maxHeight: "400pt",
-            // overflowY: "scroll",
+            paddingTop: "4%",
         }}>
-        {userInputs.map((item, i) => {
-            return (
-                <Input
-                placeholder='Type an instruction...'
+                <TextArea
+                placeholder='Type step-by-step instructions.'
                 onChange={handleChange}
-                value={item.value}
-                id={i}
-                type={item.type}
+                autoSize={{ minRows: 3, maxRows: 6 }}
+                value={userInput}
+                // id={i}
                 size="40"
                 style={{
                     margin: '1%',
-                    width: '60%',
+                    width: '80%',
                     // padding: '5%',
                 }}
                 />
-                );
-            })}
-            <Button onClick={addNewUserInput} style= {{backgroundColor: "black"}} shape='circle' icon={<PlusOutlined style={{color: "white"}}/>}/>
+                <Button onClick={submitUserInputs} disabled={loading}style={{marginTop: "3%",
+                width: "50%", borderColor: "#d3d3d3", borderRadius: "20px", backgroundColor:"black",color:"white"
+                }}>
+                    {loading ? <Spin size="small" /> : "Submit"}
+                </Button>
+            {!lastResult ? 
+                <Alert
+                    style={{textAlign: "left", margin: "5%", width: "80%"}}
+                    message="The AI marker is not always reliable."
+                    description=" Please speak with your teacher if you believe it has made a mistake."
+                    type="info"
+                    showIcon
+                /> :
+            (lastResult.status ?
+                <Alert
+                    style={{textAlign: "left", margin: "5%", width: "80%"}}
+                    message="Correct!"
+                    type="success"
+                    showIcon
+                /> :
+                <Alert
+                    style={{textAlign: "left", margin: "5%", width: "80%"}}
+                    message="Sorry, something's not quite right."
+                    description={lastResult.result + "\nPlease speak with your teacher if you believe the AI marker has made a mistake."}
+                    type="error"
+                    showIcon
+                />
+            )
+            
+        
+            }
             </div>
             <div style={{
                 display: 'flex',
@@ -96,11 +145,8 @@ function Level({mapInfo}) {
                 height: 'fit-content',
             }}>
             <div style={{margin: '5%'}}>
-            <Map mapInfo={mapInfo} editor={false} />
+            <Map mapInfo={mapInfo} editor={false} coordsToPlot={null} />
             </div>
-            <Button onClick={submitUserInputs} style={{
-                width: "50%", borderColor: "#d3d3d3", borderRadius: "20px", backgroundColor:"black",color:"white"
-            }}>Submit</Button>
             </div>
             </div>
             );

@@ -1,6 +1,6 @@
 const OpenAI = require('openai')
 
-const openai = new OpenAI({apiKey: "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",});
+const openai = new OpenAI({apiKey: "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", dangerouslyAllowBrowser: true});
 
 //     const fewShotPrompt = `
 //     Map: 
@@ -54,11 +54,12 @@ async function getInitialGPTResult(query_msg) {
 async function evaluateUserInput(map, instruction) {
     // let tools = await createTools()
     let query_msg = await parseMapAndFormQuerySentence(map, instruction)
-    console.log(query_msg)
+    console.log("Query:", query_msg)
     let init_messages = await getInitialGPTResult(query_msg)
     let messages = await criticiseLastMessage(init_messages)
     try {
         let response = await summariseAndParseOutput(messages)
+        console.log("Successfully obtained response:", response)
         return response
     } catch (error) {
         try {
@@ -72,6 +73,8 @@ async function evaluateUserInput(map, instruction) {
                 We want to make sure you have a crystal-clear understanding of the concept.`
             return {"status": false, "result": retryMessage}
         }
+    } finally {
+        console.log("finally")
     }
 }
 

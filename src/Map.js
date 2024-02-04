@@ -3,7 +3,7 @@ import './Map.css';
 import { useSpring, animated } from '@react-spring/web'
 
 const Map = (props) => {
-    const cellWidth = 45;
+    const cellWidth = 65;
     const [state, setState] = useState(props)
 
     useEffect(() => {
@@ -59,14 +59,14 @@ const Map = (props) => {
     }
 
     const springs = useSpring({
-        from: { background: "#ff6d6d", bottom: 0, left: 0, rotate: "0deg" },
+        from: { bottom: 0, left: 0, rotate: "0deg" },
         to: async (next, cancel) => {
           for (const coordinate of convertToCoordinates(['F', 'R', 'F', 'R', 'L', 'F', 'L'])) {
             console.log(coordinate);
-            await next({ rotate: (coordinate.facing * 90) + "deg", background: "#ff6d6d" });
+            await next({ rotate: (coordinate.facing * 90) + "deg" });
 
-            await next({ left: coordinate.x, background: "#ff6d6d" });
-            await next({ bottom: coordinate.y, background: "#ff6d6d" });
+            await next({ left: coordinate.x, });
+            await next({ bottom: coordinate.y, });
             // await next({ rotate: "180deg", background: "#ff6d6d" });
             // await next({ left: coordinate[0], background: "#ff6d6d" });
             // await next({ rotate: "270deg", background: "#ff6d6d" });
@@ -91,12 +91,17 @@ const Map = (props) => {
         justifySelf: 'center',
         bottom: '0',
         left: '0',
-        width: cellWidth + 'px',
-        height: cellWidth + 'px',
+        // width: cellWidth + 'px',
+        // height: cellWidth + 'px',
+        width: 0, 
+        height: 0, 
+        borderLeft: (cellWidth / 2) + 'px solid transparent',
+        borderRight: (cellWidth / 2) + 'px solid transparent',
+        borderBottom: (cellWidth / 1) + 'px solid #ff6d6d',
         opacity: '1',
         zIndex: '1',
         boxSizing: 'border-box',
-        borderRadius: "10px",
+        // borderRadius: "10px",
         ...springs,
     };
     
@@ -108,7 +113,14 @@ const Map = (props) => {
     
     console.log("HI", state.mapInfo.length, state.mapInfo)
 
-    const backgroundColor = ["white", "black", "red", "blue", "green"]
+    const backgroundColor = {
+        "S": "green",
+        "O": "white",
+        "X": "black",
+        "E": "purple",
+        "Y": "yellow",
+        "R": "red",
+    }
 
     return (
         <div className="grid" style={{position: "relative"}}>
@@ -150,7 +162,7 @@ const Map = (props) => {
                 )
                             }
                             )()}
-            <animated.div class="player" style={boxStyle}></animated.div>
+            <animated.div className="player" style={boxStyle}></animated.div>
         </div>
     );
 };
