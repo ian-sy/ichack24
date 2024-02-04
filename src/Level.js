@@ -77,17 +77,22 @@ return (
             />
             );
         })}
-        <Button onClick={addNewUserInput} shape='circle' icon={<PlusOutlined />}/>
+        <Button onClick={addNewUserInput} style= {{backgroundColor: "black"}} shape='circle' icon={<PlusOutlined style={{color: "white"}}/>}/>
         </div>
         <div style={{
-            border: '1px solid red',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyItems: 'center',
+            alignItems: 'center',
             width: '50%',
             height: 'fit-content',
         }}>
-        <div style={{border: '1px solid blue'}}>
+        <div style={{margin: '5%'}}>
         <Map />
         </div>
-        <Button onClick={submitUserInputs} type='primary'>Submit</Button>
+        <Button onClick={submitUserInputs} style={{
+            width: "50%", borderColor: "#d3d3d3", borderRadius: "20px", backgroundColor:"black",color:"white"
+        }}>Submit</Button>
         </div>
         </div>
         );

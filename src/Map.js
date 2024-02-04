@@ -95,16 +95,15 @@ const Map = () => {
         left: '0',
         width: cellWidth + 'px',
         height: cellWidth + 'px',
-        backgroundColor: 'black',
         opacity: '1',
         zIndex: '1',
         boxSizing: 'border-box',
-        borderRadius: "8px",
+        borderRadius: "20px",
         ...springs,
     };
 
     return (
-        <div className="grid" style={{border: "solid 2px red", position: "relative"}}>
+        <div className="grid" style={{position: "relative"}}>
             {gridData.map((row, rowIndex) => (
                 <div key={rowIndex} className="row" style={{
                     display: "flex",
@@ -117,7 +116,7 @@ const Map = () => {
                             style={{
                                 width: cellWidth + "px",
                                 height: cellWidth + "px",
-                                border: "0.5px solid black",
+                                border: "0.5px solid #d3d3d3",
                                 boxSizing: "border-box",
                             }}
                         >
