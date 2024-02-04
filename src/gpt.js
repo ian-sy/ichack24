@@ -51,12 +51,7 @@ async function getInitialGPTResult(query_msg) {
     return messages
 }
 
-async function evaluateUserInput(map, instruction) {
-    // let tools = await createTools()
-    let query_msg = await parseMapAndFormQuerySentence(map, instruction)
-    console.log("Query:", query_msg)
-    let init_messages = await getInitialGPTResult(query_msg)
-    let messages = await criticiseLastMessage(init_messages)
+async function getResponseJson(messages) {
     try {
         let response = await summariseAndParseOutput(messages)
         console.log("Successfully obtained response:", response)
@@ -76,6 +71,29 @@ async function evaluateUserInput(map, instruction) {
     } finally {
         console.log("finally")
     }
+}
+
+async function evaluateUserInput(map, instruction) {
+    // let tools = await createTools()
+    let query_msg = await parseMapAndFormQuerySentence(map, instruction)
+    console.log(query_msg)
+    let init_messages = await getInitialGPTResult(query_msg)
+    let messages = await criticiseLastMessage(init_messages)
+    let responseJson = await getResponseJson(messages)
+    if (responseJson.status === false) {
+        return responseJson
+    }
+    // check validity of coordinates
+    let coordinates = responseJson.result
+    let size = map.length
+    let validCoordinates = checkCoordinatesValidity(coordinates, size)
+    if (!validCoordinates) {
+        return {"status": false, "result": "FALSE the coordinates are invalid."}
+    }
+    // convert coordinates to directions
+    let directions = coordinatesToDirections(coordinates)
+    console.log(directions)
+    return {"status": true, "result": directions}
 }
 
 async function criticiseLastMessage(messages) {
@@ -162,6 +180,120 @@ async function parseMapAndFormQuerySentence(map, instruction) {
 	let mapStr = '[' + map.map(row => JSON.stringify(row)).join('\n') + ']';
 	console.log(mapStr);
     return "Map:\n" + mapStr + "\nInstruction: " + instruction
+}
+
+function processDirection(orientation, directions,nextDirection) {
+    directions.push(nextDirection)
+    switch (nextDirection) {
+        case 'R':
+            return (orientation + 1) % 4
+        case 'L':
+            return (orientation - 1) % 4
+        case 'B':
+            return (orientation + 2) % 4
+        default:
+            return orientation
+    }
+}
+
+function coordinatesToDirections(coordinates) {
+    const givenDirections = ['L', 'R', 'F', 'B']
+    let directions = []
+    let orientation = 0
+    for (let i = 0; i < coordinates.length - 1; i++) {
+        let current = coordinates[i]
+        let next = coordinates[i + 1]
+        console.log(current, next, orientation, directions)
+        if (orientation === 0) {
+            if (current[0] === next[0]) {
+                if (current[1] < next[1]) {
+                    orientation = processDirection(orientation, directions, 'R')
+                } else {
+                    orientation = processDirection(orientation, directions, 'L')
+                }
+            } else {
+                if (current[0] < next[0]) {
+                    orientation = processDirection(orientation, directions, 'B')
+                } else {
+                    orientation = processDirection(orientation, directions, 'F')
+                }
+            }
+        }
+        else if (orientation === 1) {
+            if (current[1] === next[1]) {
+                if (current[0] < next[0]) {
+                    orientation = processDirection(orientation, directions, 'R')
+                } else {
+                    orientation = processDirection(orientation, directions, 'L')
+                }
+            } else {
+                if (current[1] < next[1]) {
+                    orientation = processDirection(orientation, directions, 'F')
+                } else {
+                    orientation = processDirection(orientation, directions, 'B')
+                }
+            }
+        } else if (orientation === 2) {
+            if (current[0] === next[0]) {
+                if (current[1] < next[1]) {
+                    orientation = processDirection(orientation, directions, 'L')
+                } else {
+                    orientation = processDirection(orientation, directions, 'R')
+                }
+            } else {
+                if (current[0] < next[0]) {
+                    orientation = processDirection(orientation, directions, 'F')
+                } else {
+                    orientation = processDirection(orientation, directions, 'B')
+                }
+            }
+        } else if (orientation === 3) {
+            if (current[1] === next[1]) {
+                if (current[0] < next[0]) {
+                    orientation = processDirection(orientation, directions, 'L')
+                } else {
+                    orientation = processDirection(orientation, directions, 'R')
+                }
+            } else {
+                if (current[1] < next[1]) {
+                    orientation = processDirection(orientation, directions, 'B')
+                } else {
+                    orientation = processDirection(orientation, directions, 'F')
+                }
+            }
+        }
+        
+    }
+    return directions
+}
+
+function checkCoordinatesValidity(coordinates, size) {
+    const starting_x = size - 2
+    const starting_y = 1
+    if (coordinates[0][0] !== starting_x || coordinates[0][1] !== starting_y) {
+        console.log('not starting at starting point')
+        return false
+    }
+    for (let i = 0; i < coordinates.length; i++) {
+        if (coordinates[i][0] < 0 || coordinates[i][0] > size - 1 || coordinates[i][1] < 0 || coordinates[i][1] > size - 1) {
+            console.log('out of bounds')
+            return false
+        }
+    }
+    // check that coordinates only move in one direction at a time and one step at a time
+    for (let i = 0; i < coordinates.length - 1; i++) {
+        if (coordinates[i][0] !== coordinates[i + 1][0] && coordinates[i][1] !== coordinates[i + 1][1]) {
+            console.log('more than one direction')
+            return false
+        }
+        if (Math.abs(coordinates[i][0] - coordinates[i + 1][0]) > 1 || Math.abs(coordinates[i][1] - coordinates[i + 1][1]) > 1) {
+            console.log('more than one step')
+            return false
+        }
+
+    }
+    return true
+
 }
 
 module.exports= {evaluateUserInput};
