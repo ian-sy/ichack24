@@ -2,6 +2,11 @@ const OpenAI = require('openai')
 
 const openai = new OpenAI({apiKey: "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",});
 
+const retryMessage = 
+                `Hey there! Thank you so much for giving it a shot! 
+                We truly appreciate your effort. Could you please try again and explain your thoughts with more detail? 
+                We want to make sure you have a crystal-clear understanding of the concept.`
+
 //     const fewShotPrompt = `
 //     Map: 
 //     [ ['X', 'X', 'X', 'X', 'X', 'X'],
@@ -25,7 +30,7 @@ const openai = new OpenAI({apiKey: "sk-6XJESnHH7amLezM0N3auT3BlbkFJrKCniPOeUik1P
 
 async function getGPTResponse(messages) {
     const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-3.5-turbo-0125",
         messages: messages,
         temperature: 0.5
         // tools: tools? tools : [],
@@ -62,11 +67,7 @@ async function getResponseJson(messages) {
             return response
         } catch (error) {
             console.log("there is an error in the response" + error.message)
-            const retryMessage = 
-                `Hey there! Thank you so much for giving it a shot! 
-                We truly appreciate your effort. Could you please try again and explain your thoughts with more detail? 
-                We want to make sure you have a crystal-clear understanding of the concept.`
-            return {"status": false, "reason":"gpt-fail", "result": retryMessage}
+            return {"status": false, "reason":"gpt", "result": retryMessage}
         }
     }
 }
@@ -114,12 +115,15 @@ async function evaluateUserInput(map, instruction, model) {
     let size = map.length
     let validCoordinates = checkCoordinatesValidity(coordinates, size)
     if (!validCoordinates) {
-        return {"status": false, "reason": "coord", "result": "FALSE the coordinates are invalid."}
+        return {"status": false, "reason": "coord-invalid", "result": "FALSE the coordinates are invalid."}
     }
     // convert coordinates to directions
-    let directions = coordinatesToDirections(coordinates)
+    let directions = coordinatesToDirections(coordinates, size)
     console.log(directions)
-    return {"status": true, "result": directions}
+    if (!directions.status) {
+        return {"status": true, "reason": "coord-valid", "result": "Your response is not entirely correct. Please try again. Feel free to reach out to your teacher for help!"}
+    }
+    return {"status": true, "result": directions.directions}
 }
 
 async function generateAdditionalResponse(messages) {
@@ -202,14 +206,14 @@ async function summariseAndParseOutput(messages) {
         const summarize_prompt = `Based on your last response, return me a short explanation of why the instruction is unclear. Do not output anything else.`
         messages.push({"role": "user", "content": summarize_prompt})
         let completion = await getGPTResponse(messages)
-        let reasoning = completion.choices[0]['message']['content']
+        let output = completion.choices[0]['message']['content']
         // get the last coordinates
         // const output_prompt = `Based on your last response, return me a list of coordinates only. Do not output anything else.`
         // messages.push({"role": "user", "content": summarize_prompt})
         // let completion2 = await getGPTResponse(messages)
         // let coords = completion2.choices[0]['message']['content']
         // console.log(output2)
-        // return {"status": false, "reason": "gpt", "result": coords, "explanation": reasoning}
+        return {"status": false, "reason": "gpt", "result": retryMessage}
     } else {
         const getOutputPrompt = `Based on your last response, return me a list of coordinates only. Do not output anything else.`
         messages.push({"role": "user", "content": getOutputPrompt})
@@ -248,10 +252,16 @@ function processDirection(orientation, directions,nextDirection) {
     }
 }
 
-function coordinatesToDirections(coordinates) {
+function coordinatesToDirections(coordinates, size) {
     const givenDirections = ['L', 'R', 'F', 'B']
     let directions = []
     let orientation = 0
+    let stat = true
+    const ending_x = 1
+    const ending_y = size - 2
+    if (coordinates[coordinates.length - 1][0] !== ending_x || coordinates[coordinates.length - 1][1] !== ending_y) { 
+        stat = false
+    }
     for (let i = 0; i < coordinates.length - 1; i++) {
         let current = coordinates[i]
         let next = coordinates[i + 1]
@@ -316,7 +326,7 @@ function coordinatesToDirections(coordinates) {
         }
         
     }
-    return directions
+    return {"status": stat, "directions": directions}
 }
 
 function checkCoordinatesValidity(coordinates, size) {
