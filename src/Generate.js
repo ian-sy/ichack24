@@ -19,9 +19,24 @@ function Generate() {
     }
 
 return (
-    <div>
+    <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxSizing: 'border-box',
+    }}>
+        <div>
+        <Map mapInfo={makeGrid(gridDimensions)} editor={true}/>
+        </div>
+        <div style={{width: "35%"}}>
         <Row>
-        <Col span={12}>
+        <Col span ={10}>
+            <h3>Grid Dimensions</h3>
+        </Col>
+        <Col style={{paddingTop: "2%"}}span={12}>
             <Slider
             min={5}
             max={7}
@@ -29,25 +44,8 @@ return (
             value={gridDimensions}
             />
         </Col>
-        <Col span={4}>
-            <InputNumber
-            min={5}
-            max={7}
-            style={{ margin: '0 16px' }}
-            value={gridDimensions}
-            onChange={onChange}
-            />
-        </Col>
         </Row>
-    <div style={{
-        border: '5px solid red',
-        width: '50%',
-        height: 'fit-content',
-    }}>
-    <div style={{border: '1px solid blue'}}>
-    <Map mapInfo={makeGrid(gridDimensions)} editor={true}/>
-    </div>
-    </div>
+        </div>
     </div>
     // <div className="App" style={{
     //     padding: '5%',

@@ -4,7 +4,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import './Level.css';
 import Map from './Map';
 
-function Level() {
+function Level({mapInfo}) {
     const [userInputs, setUserInputs] = React.useState([{value: ''}]);
     
     // Handler to add a new user input field
@@ -96,7 +96,7 @@ function Level() {
                 height: 'fit-content',
             }}>
             <div style={{margin: '5%'}}>
-            <Map mapInfo={makeGrid(5)} editor={false} />
+            <Map mapInfo={mapInfo} editor={false} />
             </div>
             <Button onClick={submitUserInputs} style={{
                 width: "50%", borderColor: "#d3d3d3", borderRadius: "20px", backgroundColor:"black",color:"white"

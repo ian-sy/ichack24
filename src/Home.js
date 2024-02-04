@@ -7,8 +7,12 @@ function Home(){
 
     const navigate = useNavigate();
 
-function handleClick(){
+function routeToLevels(){
     navigate("/levels")
+}
+
+function routeToTeacher(){
+    navigate("/teacher")
 }
 
 return(
@@ -19,10 +23,10 @@ return(
     }}>
     <div className="login-container">
         <Flex gap="small" align="flex-start" vertical style={{width: "100%"}}>
-        <Button onClick={handleClick} style={{
+        <Button onClick={routeToLevels} style={{
             width: "100%", borderColor: "#d3d3d3", borderRadius: "20px", 
         }}>Play</Button>
-        <Button style={{
+        <Button onClick={routeToTeacher} style={{
             width: "100%", borderColor: "#d3d3d3", borderRadius: "20px", 
         }}>Teacher</Button>
         </Flex>

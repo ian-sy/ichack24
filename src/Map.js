@@ -111,7 +111,7 @@ const Map = (props) => {
     const backgroundColor = ["white", "black", "red", "blue", "green"]
 
     return (
-        <div className="grid" style={{border: "solid 2px red", position: "relative"}}>
+        <div className="grid" style={{position: "relative"}}>
             {(() => {
                 const finalGeneration = []
                 for (let i = 0; i < mapDim; i++) {   
