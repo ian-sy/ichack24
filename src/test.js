@@ -14,7 +14,6 @@ async function test() {
     //             ['X', 'Y', 'O', 'R', 'O', 'X'],
     //             ['X', 'S', 'X', 'X', 'O', 'X'],
     //             ['X', 'X', 'X', 'X', 'X', 'X']]
-    console.log('TFALSE'.includes('FALSE'))
     let instr = "walk up from the starting point. If you are on a yellow box, turn right. If you are on a red box, turn left. If you are at the end point. Stop."
     // let badInstr = "Walk up 4 squares and turn right"
     // let instr = "walk up from the starting point. If you hit and wall, turn right and continue. Stop when you reach the endpoint."
